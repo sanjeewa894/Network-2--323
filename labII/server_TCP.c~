@@ -1,0 +1,87 @@
+/* Sample TCP server */
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+int main(int argc, char**argv){
+
+	int listenfd,connfd,n,countsize=0;
+	struct sockaddr_in servaddr,cliaddr;
+	socklen_t clilen;
+	char* banner;// = "The size of the file is 10Mb";
+	char buffer[1000],temp[1000];
+	int i=0;
+    FILE * sendfile;
+    char c;
+	/* one socket is dedicated to listening */
+	listenfd=socket(AF_INET,SOCK_STREAM,0);
+	
+	/* initialize a sockaddr_in struct with our own address information for binding the socket */
+	servaddr.sin_family = AF_INET;
+	servaddr.sin_addr.s_addr=htonl(INADDR_ANY);
+	servaddr.sin_port=htons(32000);
+
+	/* binding */
+	bind(listenfd,(struct sockaddr *)&servaddr,sizeof(servaddr));
+	listen(listenfd,0);
+	clilen=sizeof(cliaddr);	
+	
+while(1){
+	/* accept the client with a different socket. */
+	connfd = accept(listenfd,(struct sockaddr *)&cliaddr,&clilen); // the uninitialized cliaddr variable is filled in with the
+
+	n = recvfrom(connfd,buffer,1000,0,(struct sockaddr *)&cliaddr,&clilen);//information of the client by recvfrom function
+	buffer[n] = 0;
+	
+	//read file from server
+	if(buffer != NULL)
+	    sendfile = fopen (buffer, "r");
+	
+	
+	
+	if(sendfile != NULL){
+	  banner = "The size of the file is 40b";    
+	 
+	   sendto(connfd,banner,strlen(banner),0,(struct sockaddr*)&cliaddr,sizeof(cliaddr));  
+	   banner = NULL; 
+	   
+	   int j;
+	      while(1){
+		    	
+			
+			c = fgetc(sendfile);
+			temp[i] = c; 
+			i++;
+			 
+			
+			if(feof(sendfile)) {				
+				banner = temp; 	
+        			banner[strlen(banner)-1] = '\0';
+        			sendto(connfd,banner,strlen(banner),0,(struct sockaddr*)&cliaddr,sizeof(cliaddr));
+        			 
+				break;
+			}
+         	
+        	if(i>=20){
+        		banner = temp;
+        		i=0;
+        		sendto(connfd,banner,strlen(banner),0,(struct sockaddr*)&cliaddr,sizeof(cliaddr));
+			
+			 for(j=0;j<1000;j++) temp[j] = '\0';		
+        	}       
+            }
+            
+       fclose(sendfile);
+     } 
+     else{
+     	banner = "No content of file specify";
+   	sendto(connfd,banner,strlen(banner),0,(struct sockaddr*)&cliaddr,sizeof(cliaddr)); 
+   	
+   	}
+   		
+		printf("Received:%s\n",buffer);
+	}
+return 0;
+}
